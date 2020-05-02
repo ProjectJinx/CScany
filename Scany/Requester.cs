@@ -19,6 +19,7 @@ namespace Scany
         {
             client = new RestClient(path);
             client.UseJson();
+
         }
 
         public static Token GetToken(string data)
