@@ -11,6 +11,8 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using RestSharp;
+using System.Security.Cryptography;
 
 namespace Scany
 {
@@ -18,6 +20,7 @@ namespace Scany
     {
         string server;
         string pass;
+        string[] errors = new string[] {"No", "None", "Wrongg"};
 
         public FormLogin()
         {
@@ -42,28 +45,26 @@ namespace Scany
             pass = txtPass.Text;
             if (server != "" && pass != "")
             {
-                Auth a = new Auth(txtPass.Text);
-                string jsonstring = JsonConvert.SerializeObject(a);
-                try
-                {
-                    WebRequest request = WebRequest.Create("https://" + server + "/Auth");
-                    request.ContentType = "application/x-www-form-urlencoded";
-                    request.Method = "POST";
+                string path;
+                if (server.StartsWith("http"))
+                    path = server;
+                else
+                    path = "https://" + server;
+                
+                string data = GetHash(pass);
 
+                Requester.Init(path);
+                Token tk = Requester.GetToken(data);
 
-                    StreamWriter streamWriter = new StreamWriter(request.GetRequestStream());
-                    streamWriter.Write(pass);
-
-                    var httpResponse = (HttpWebResponse)request.GetResponse();
-                    StreamReader streamReader = new StreamReader(httpResponse.GetResponseStream());
-                    var result = streamReader.ReadToEnd();
-                    MessageBox.Show(result);
+                if (errors.Contains(tk.token))
+                    MessageBox.Show("Something went wrong");
+                else
+                { 
                     lbStat.Text = "Connected";
                     lbStat.ForeColor = Color.LimeGreen;
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message);
+
+                    FormList formList = new FormList(path, tk);
+                    formList.Show();
                 }
             }
         }
@@ -76,6 +77,20 @@ namespace Scany
         private void txtPass_TextChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private static string GetHash(string input)
+        {
+            using (SHA256 hash = SHA256.Create())
+            {
+                byte[] data = hash.ComputeHash(Encoding.UTF8.GetBytes(input));
+                StringBuilder builder = new StringBuilder();
+                for (int i = 0; i < data.Length; i++)
+                {
+                    builder.Append(data[i].ToString("x2"));                    
+                }
+                return builder.ToString();
+            }
         }
 
         #region Labels
