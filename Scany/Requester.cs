@@ -13,7 +13,8 @@ namespace Scany
     {
         private static RestClient client;
         private static Token tk;
-        private static List<Device> devices; 
+        private static List<Device> devices;
+        private static string pass;
 
         public static void Init(string path)
         {
@@ -24,8 +25,9 @@ namespace Scany
 
         public static Token GetToken(string data)
         {
+            pass = data;
             var request = new RestRequest("AuthClient", Method.POST);
-            request.AddJsonBody(new Auth(data));
+            request.AddJsonBody(new Auth(pass));
 
             var response = client.Post(request);
             tk = JsonConvert.DeserializeObject<Token>(response.Content);
@@ -38,6 +40,11 @@ namespace Scany
             request.AddParameter("text/xml", tk.token, ParameterType.RequestBody);
 
             var response = client.Post(request);
+            if (response.Content == "no thx")
+            {
+                tk = GetToken(pass);
+                GetDevices();
+            }
             try
             {
                 devices = JsonConvert.DeserializeObject<List<Device>>(response.Content);
